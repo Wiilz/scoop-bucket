@@ -1,0 +1,15 @@
+name: Excavator
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '16 0 * * *'   # 每天 UTC 0:16 运行
+jobs:
+  excavate:
+    name: Excavate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Excavator
+        uses: ScoopInstaller/Excavator@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
