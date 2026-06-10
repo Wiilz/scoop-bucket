@@ -7,7 +7,7 @@
 ### 添加 bucket
 
 ```powershell
-scoop bucket add mine https://github.com/liangzewe/scoop-bucket
+scoop bucket add lz-bucket https://github.com/Wiilz/scoop-bucket
 ```
 
 ### 安装软件
