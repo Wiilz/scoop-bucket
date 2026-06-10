@@ -3,9 +3,28 @@
     "description": "AI编程工具模型接口本地化管理和快速切换工具",
     "homepage": "https://github.com/tangshuang/aicodeswitch",
     "license": "GPL-3.0",
-    "depends": "nodejs",
+    "url": "https://registry.npmjs.org/aicodeswitch/-/aicodeswitch-5.1.3.tgz",
+    "hash": "sha1:8f9703203ebd7a686646c6a873052559eb04c506",
+    "notes": "Requires Node.js. If Node.js is not detected, it will be installed automatically via scoop.",
+    "pre_install": [
+        "$nodeCmd = Get-Command node -ErrorAction SilentlyContinue",
+        "if (-not $nodeCmd) {",
+        "    Write-Host 'Node.js is not found in PATH. Installing via scoop...' -ForegroundColor Yellow",
+        "    scoop install nodejs",
+        "    $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + [System.Environment]::GetEnvironmentVariable('PATH', 'User')",
+        "    $nodeCmd = Get-Command node -ErrorAction SilentlyContinue",
+        "    if (-not $nodeCmd) {",
+        "        throw 'Node.js was installed but is not available in PATH. Please restart your terminal and retry.'",
+        "    }",
+        "    Write-Host 'Node.js installed successfully.' -ForegroundColor Green",
+        "}"
+    ],
     "installer": {
         "script": [
+            "if (-not (Get-Command node -ErrorAction SilentlyContinue)) {",
+            "    Write-Error 'Node.js is required but not found in PATH. Please install Node.js first (e.g., via fnm, nvm, or https://nodejs.org).'",
+            "    exit 1",
+            "}",
             "if (Get-Command pnpm -ErrorAction SilentlyContinue) {",
             "    pnpm add -g aicodeswitch",
             "} else {",
@@ -13,6 +32,12 @@
             "}"
         ]
     },
+    "post_install": [
+        "if (Test-Path \"$dir\\package\") {",
+        "    Remove-Item \"$dir\\package\" -Recurse -Force -ErrorAction SilentlyContinue",
+        "    Write-Host 'Cleaned up unnecessary npm tarball files.' -ForegroundColor DarkGray",
+        "}"
+    ],
     "uninstaller": {
         "script": [
             "if (Get-Command pnpm -ErrorAction SilentlyContinue) {",
