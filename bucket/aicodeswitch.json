@@ -51,5 +51,10 @@
         "npm": "aicodeswitch"
     },
     "autoupdate": {
+        "url": "https://registry.npmjs.org/aicodeswitch/-/aicodeswitch-$version.tgz",
+        "hash": {
+            "url": "https://registry.npmjs.org/aicodeswitch/$version",
+            "jsonpath": "$.dist.shasum"
+        }
     }
 }

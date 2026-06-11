@@ -3,6 +3,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '16 0 * * *'   # 每天 UTC 0:16 运行
+permissions:
+  contents: write
+
 jobs:
   excavate:
     name: Excavate
