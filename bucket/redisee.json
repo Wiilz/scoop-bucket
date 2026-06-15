@@ -24,6 +24,7 @@
             "Redisee"
         ]
     ],
+    "persist": "Data",
     "checkver": {
         "github": "https://github.com/tiny-craft/redisee-app",
         "regex": "/releases/tag/v?([\\d.]+)"
