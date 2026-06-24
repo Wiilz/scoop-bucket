@@ -1,10 +1,10 @@
 {
-    "version": "5.2.13",
+    "version": "6.0.0",
     "description": "AI编程工具模型接口本地化管理和快速切换工具",
     "homepage": "https://github.com/tangshuang/aicodeswitch",
     "license": "GPL-3.0",
-    "url": "https://registry.npmjs.org/aicodeswitch/-/aicodeswitch-5.2.13.tgz",
-    "hash": "sha1:68e39c0e4ce0cc3bff788c0b084536a809b23090",
+    "url": "https://registry.npmjs.org/aicodeswitch/-/aicodeswitch-6.0.0.tgz",
+    "hash": "sha1:218bc0d41ee3f38c6bfed4e3ea4ca5f9d334f13a",
     "notes": "Requires Node.js. If Node.js is not detected, it will be installed automatically via scoop.",
     "pre_install": [
         "$nodeCmd = Get-Command node -ErrorAction SilentlyContinue",
