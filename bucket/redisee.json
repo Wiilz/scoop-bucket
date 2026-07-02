@@ -1,5 +1,5 @@
 {
-    "version": "1.1.3",
+    "version": "1.1.4",
     "description": "现代化的 Redis 桌面客户端（Lykin Studio / 鎏光科技工作室出品）",
     "homepage": "https://redisee.com/zh",
     "license": "Proprietary",
@@ -9,12 +9,12 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.3/Redisee-win-x64-stable-Portable.zip",
-            "hash": "0a6207ad85e80bd4483d7aa46b15848c6d08f4e2b9ae199e60a6a67986451cb6"
+            "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.4/Redisee-win-x64-stable-Portable.zip",
+            "hash": "3d4a6ed62e51d6aaff6b4f42fd1d2d390697a6815dcbcada756bdbb5aefdd9e6"
         },
         "arm64": {
-            "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.3/Redisee-win-arm64-stable-Portable.zip",
-            "hash": "4695ae34c67916a19a22f53c64e8b0291f22e2ab8ec8c407fa864f4eb1db084e"
+            "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.4/Redisee-win-arm64-stable-Portable.zip",
+            "hash": "17906f516f3d65697685c1bc30c025a5357c5caedb280a0a71a7bd6d83a389d1"
         }
     },
     "bin": "Redisee.exe",
