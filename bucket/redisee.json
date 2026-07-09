@@ -3,10 +3,7 @@
     "description": "现代化的 Redis 桌面客户端（Lykin Studio / 鎏光科技工作室出品）",
     "homepage": "https://redisee.com/zh",
     "license": "Proprietary",
-    "notes": [
-        "Redisee 是闭源商业软件（freemium）：免费档可用，付费档解锁高级特性。",
-        "应用内置 Velopack 自更新；为避免与 scoop 版本冲突，建议在应用设置中关闭自动检查更新，统一用 'scoop update redisee' 管理。"
-    ],
+    "notes": "Redisee 是闭源商业软件（freemium）：免费档可用，付费档解锁高级特性。",
     "architecture": {
         "64bit": {
             "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.5/Redisee-win-x64-stable-Portable.zip",
@@ -17,6 +14,22 @@
             "hash": "76489f9637ff9288a44fad3545f36ff7cd1c159d8c97ea5b7bfdea38051248cb"
         }
     },
+    "post_install": [
+        "if (Test-Path \"$dir\\current\") {",
+        "    Copy-Item \"$dir\\current\\*\" \"$dir\" -Recurse -Force",
+        "    Remove-Item \"$dir\\current\" -Recurse -Force",
+        "}",
+        "Remove-Item \"$dir\\Update.exe\" -Force -ErrorAction SilentlyContinue",
+        "Remove-Item \"$dir\\packages\" -Recurse -Force -ErrorAction SilentlyContinue",
+        "$dataDst = \"$env:LOCALAPPDATA\\Redisee\\Data\"",
+        "if (Test-Path \"$persist_dir\\Data\\connections.db\") {",
+        "    if (-not (Test-Path \"$dataDst\\connections.db\")) {",
+        "        New-Item -ItemType Directory -Force -Path \"$dataDst\" | Out-Null",
+        "        Copy-Item \"$persist_dir\\Data\\*\" \"$dataDst\" -Force",
+        "        Write-Host \"Migrated existing Redisee data to $dataDst\" -ForegroundColor Green",
+        "    }",
+        "}"
+    ],
     "bin": "Redisee.exe",
     "shortcuts": [
         [
@@ -24,7 +37,6 @@
             "Redisee"
         ]
     ],
-    "persist": "Data",
     "checkver": {
         "github": "https://github.com/tiny-craft/redisee-app",
         "regex": "/releases/tag/v?([\\d.]+)"
