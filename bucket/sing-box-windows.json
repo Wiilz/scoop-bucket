@@ -1,0 +1,42 @@
+{
+    "version": "2.3.1",
+    "description": "基于 Tauri 2.0 + Vue 3 的 Sing-Box GUI 客户端，支持多协议、订阅管理、TUN 模式",
+    "homepage": "https://github.com/xinggaoya/sing-box-windows",
+    "license": "MIT",
+    "notes": [
+        "TUN 模式（虚拟网卡代理）需要以管理员身份运行。",
+        "依赖 WebView2 Runtime（Windows 11 已内置，Windows 10 可能需另装）。",
+        "应用内置自动更新，建议在设置中关闭，改用 scoop update 管理版本。"
+    ],
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v2.3.1/sing-box-windows-portable.zip",
+            "hash": "e67d44f95d38a8c41a9f1789c2cc2a8f4c05edd4ba4f02e2acd8a8861b81b5ae"
+        },
+        "arm64": {
+            "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v2.3.1/sing-box-windows-arm64-portable.zip",
+            "hash": "7168fd584cb3dfadef63a1c1c1408973d4a22f11ebf8abe64d2061e26e2aaba4"
+        }
+    },
+    "bin": "sing-box-windows.exe",
+    "shortcuts": [
+        [
+            "sing-box-windows.exe",
+            "Sing-Box Windows"
+        ]
+    ],
+    "checkver": {
+        "github": "https://github.com/xinggaoya/sing-box-windows",
+        "regex": "/releases/tag/v?([\\d.]+)"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v$version/sing-box-windows-portable.zip"
+            },
+            "arm64": {
+                "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v$version/sing-box-windows-arm64-portable.zip"
+            }
+        }
+    }
+}
