@@ -6,7 +6,8 @@
     "notes": [
         "TUN 模式（虚拟网卡代理）需要以管理员身份运行。",
         "依赖 WebView2 Runtime（Windows 11 已内置，Windows 10 可能需另装）。",
-        "应用内置自动更新，建议在设置中关闭，改用 scoop update 管理版本。"
+        "应用内置自动更新，建议在设置中关闭，改用 scoop update 管理版本。",
+        "订阅与设置存储在 %APPDATA%\\cn.moncn.singbox，已通过 persist 跨升级保留；卸载时会清理 %LOCALAPPDATA%\\sing-box-windows 下的内核缓存（重装自动重建）。"
     ],
     "architecture": {
         "64bit": {
@@ -18,6 +19,22 @@
             "hash": "7168fd584cb3dfadef63a1c1c1408973d4a22f11ebf8abe64d2061e26e2aaba4"
         }
     },
+    "post_install": [
+        "$dst = \"$env:APPDATA\\cn.moncn.singbox\"",
+        "if ((Test-Path \"$persist_dir\\appdata\") -and (-not (Test-Path \"$dst\"))) {",
+        "    New-Item -ItemType Directory -Force -Path \"$dst\" | Out-Null",
+        "    Copy-Item \"$persist_dir\\appdata\\*\" \"$dst\" -Recurse -Force",
+        "    Write-Host \"Restored sing-box-windows data from persist to $dst\" -ForegroundColor Green",
+        "}"
+    ],
+    "pre_uninstall": [
+        "$src = \"$env:APPDATA\\cn.moncn.singbox\"",
+        "if (Test-Path \"$src\") {",
+        "    New-Item -ItemType Directory -Force -Path \"$persist_dir\\appdata\" | Out-Null",
+        "    Copy-Item \"$src\\*\" \"$persist_dir\\appdata\" -Recurse -Force",
+        "}",
+        "Remove-Item \"$env:LOCALAPPDATA\\sing-box-windows\" -Recurse -Force -ErrorAction SilentlyContinue"
+    ],
     "bin": "sing-box-windows.exe",
     "shortcuts": [
         [
