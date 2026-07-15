@@ -1,6 +1,6 @@
 # scoop-bucket
 
-自用 Scoop bucket，用于安装和管理 `aicodeswitch`、`redisee`、`wechat-devtools` 等工具。
+自用 Scoop bucket，用于安装和管理 `aicodeswitch`、`redisee`、`wechat-devtools`、`sing-box-windows` 等工具。
 
 ## 使用方法
 
@@ -34,6 +34,12 @@ scoop install wechat-devtools
 
 # 更新
 scoop update wechat-devtools
+
+# 安装 sing-box-windows（Sing-Box GUI 客户端，便携版，自动按 x64/arm64 选择）
+scoop install sing-box-windows
+
+# 更新
+scoop update sing-box-windows
 ```
 
 ## 包含的软件
@@ -43,3 +49,4 @@ scoop update wechat-devtools
 | [aicodeswitch](https://github.com/tangshuang/aicodeswitch) | AI编程工具模型接口本地化管理和快速切换工具 |
 | [redisee](https://redisee.com/zh) | 现代化的 Redis 桌面客户端（闭源 freemium，便携版，支持 x64/arm64） |
 | [wechat-devtools](https://developers.weixin.qq.com/miniprogram/dev/devtools/devtools.html) | 微信开发者工具（闭源 Freeware，支持 x64/ia32） |
+| [sing-box-windows](https://github.com/xinggaoya/sing-box-windows) | 基于 Tauri 2.0 的 Sing-Box GUI 客户端（MIT 开源，便携版，支持 x64/arm64） |
