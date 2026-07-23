@@ -2,7 +2,7 @@ name: Excavator
 on:
   workflow_dispatch:
   schedule:
-    - cron: '16 0 * * *'   # 每天 UTC 0:16 运行
+    - cron: '0 18 * * *'   # 每天 UTC 18:00 运行
 permissions:
   contents: write
 
