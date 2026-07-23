@@ -7,11 +7,11 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.7/Redisee-win-x64-stable-Portable.zip",
-            "hash": "4a12c2129ad6afec13e63015490d9f0da437c77dfadc76407e62bee4379b838a"
+            "hash": "cf79fcba86acb236578fcb6a2cf235ab73d1b9f32fe86a2780258af3dd951c82"
         },
         "arm64": {
             "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.7/Redisee-win-arm64-stable-Portable.zip",
-            "hash": "c5ca2e49e5bf0aacfeaa71830496673f0124890089957293318f3ee1e136b73c"
+            "hash": "f71e5d9d9408927ff6bc50cbf01c83d788144e6e8bb743739d09f7f39ee1428e"
         }
     },
     "post_install": [
