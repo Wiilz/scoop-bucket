@@ -1,0 +1,123 @@
+{
+    "version": "20.0d4e1-static",
+    "description": "PingFang TC OpenType font family for Windows",
+    "homepage": "https://github.com/ACT-02/PingFang-for-Windows",
+    "license": {
+        "identifier": "Proprietary",
+        "url": "https://github.com/ACT-02/PingFang-for-Windows"
+    },
+    "url": [
+        "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/20.0d4e1-static/PingFangTC-Light.otf",
+        "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/20.0d4e1-static/PingFangTC-Medium.otf",
+        "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/20.0d4e1-static/PingFangTC-Regular.otf",
+        "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/20.0d4e1-static/PingFangTC-Semibold.otf",
+        "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/20.0d4e1-static/PingFangTC-Thin.otf",
+        "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/20.0d4e1-static/PingFangTC-Ultralight.otf"
+    ],
+    "hash": [
+        "6d3428261e3106ed30d198e1d868906d68cd7cbe7d8bf6c5996db2b2016d82c2",
+        "6589ae8d78c918dfaaf626444f8dc5a73a0c5f14dd2aa20bf5d70fcb156d986b",
+        "2a8806caee653dd3404ad59afa50d8b9dda1b8fa5b7cf9a5c4934fc201731a88",
+        "b59e3888b86a9592c25a9f37faa076d6c3d86c77f15cba399b5be846e93f0d28",
+        "408c6d963df708fa7defd64e142addb0b65c96e67cd339707686b5a8b499401d",
+        "c0f9e934f74dd0088aabd13b989cc6fc466a30d1a26a6c33326e3e5b81e92e70"
+    ],
+    "installer": {
+        "script": [
+            "$currentBuildNumber = [int] (Get-ItemProperty \"HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\").CurrentBuildNumber",
+            "$windows10Version1809BuildNumber = 17763",
+            "$isPerUserFontInstallationSupported = $currentBuildNumber -ge $windows10Version1809BuildNumber",
+            "if (!$isPerUserFontInstallationSupported -and !$global) {",
+            "    scoop uninstall $app",
+            "    Write-Host \"\"",
+            "    Write-Host \"For Windows version before Windows 10 Version 1809 (OS Build 17763),\" -Foreground DarkRed",
+            "    Write-Host \"Font can only be installed for all users.\" -Foreground DarkRed",
+            "    Write-Host \"\"",
+            "    Write-Host \"Please use following commands to install '$app' Font for all users.\" -Foreground DarkRed",
+            "    Write-Host \"\"",
+            "    Write-Host \"        scoop install sudo\"",
+            "    Write-Host \"        sudo scoop install -g $app\"",
+            "    Write-Host \"\"",
+            "    exit 1",
+            "}",
+            "$fontInstallDir = if ($global) { \"$env:windir\\Fonts\" } else { \"$env:LOCALAPPDATA\\Microsoft\\Windows\\Fonts\" }",
+            "if (-not $global) {",
+            "    # Ensure user font install directory exists and has correct permission settings",
+            "    # See https://github.com/matthewjberger/scoop-nerd-fonts/issues/198#issuecomment-1488996737",
+            "    New-Item $fontInstallDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null",
+            "    $accessControlList = Get-Acl $fontInstallDir",
+            "    $allApplicationPackagesAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule([System.Security.Principal.SecurityIdentifier]::new(\"S-1-15-2-1\"), \"ReadAndExecute\", \"ContainerInherit,ObjectInherit\", \"None\", \"Allow\")",
+            "    $allRestrictedApplicationPackagesAccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule([System.Security.Principal.SecurityIdentifier]::new(\"S-1-15-2-2\"), \"ReadAndExecute\", \"ContainerInherit,ObjectInherit\", \"None\", \"Allow\")",
+            "    $accessControlList.SetAccessRule($allApplicationPackagesAccessRule)",
+            "    $accessControlList.SetAccessRule($allRestrictedApplicationPackagesAccessRule)",
+            "    Set-Acl -AclObject $accessControlList $fontInstallDir",
+            "}",
+            "$registryRoot = if ($global) { \"HKLM\" } else { \"HKCU\" }",
+            "$registryKey = \"${registryRoot}:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts\"",
+            "Get-ChildItem $dir -Filter 'PingFangTC-*.otf' | ForEach-Object {",
+            "    $value = if ($global) { $_.Name } else { \"$fontInstallDir\\$($_.Name)\" }",
+            "    New-ItemProperty -Path $registryKey -Name $_.Name.Replace($_.Extension, ' (TrueType)') -Value $value -Force | Out-Null",
+            "    Copy-Item -LiteralPath $_.FullName -Destination $fontInstallDir",
+            "}"
+        ]
+    },
+    "pre_uninstall": [
+        "$fontInstallDir = if ($global) { \"$env:windir\\Fonts\" } else { \"$env:LOCALAPPDATA\\Microsoft\\Windows\\Fonts\" }",
+        "Get-ChildItem $dir -Filter 'PingFangTC-*.otf' | ForEach-Object {",
+        "    Get-ChildItem $fontInstallDir -Filter $_.Name | ForEach-Object {",
+        "        try {",
+        "            Rename-Item $_.FullName $_.FullName -ErrorVariable LockError -ErrorAction Stop",
+        "        } catch {",
+        "            Write-Host \"\"",
+        "            Write-Host \" Error \" -Background DarkRed -Foreground White -NoNewline",
+        "            Write-Host \"\"",
+        "            Write-Host \" Cannot uninstall '$app' font.\" -Foreground DarkRed",
+        "            Write-Host \"\"",
+        "            Write-Host \" Reason \" -Background DarkCyan -Foreground White -NoNewline",
+        "            Write-Host \"\"",
+        "            Write-Host \" The '$app' font is currently being used by another application,\" -Foreground DarkCyan",
+        "            Write-Host \" so it cannot be deleted.\" -Foreground DarkCyan",
+        "            Write-Host \"\"",
+        "            Write-Host \" Suggestion \" -Background Magenta -Foreground White -NoNewline",
+        "            Write-Host \"\"",
+        "            Write-Host \" Close all applications that are using '$app' font (e.g. vscode),\" -Foreground Magenta",
+        "            Write-Host \" and then try again.\" -Foreground Magenta",
+        "            Write-Host \"\"",
+        "            exit 1",
+        "        }",
+        "    }",
+        "}"
+    ],
+    "uninstaller": {
+        "script": [
+            "$fontInstallDir = if ($global) { \"$env:windir\\Fonts\" } else { \"$env:LOCALAPPDATA\\Microsoft\\Windows\\Fonts\" }",
+            "$registryRoot = if ($global) { \"HKLM\" } else { \"HKCU\" }",
+            "$registryKey = \"${registryRoot}:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts\"",
+            "Get-ChildItem $dir -Filter 'PingFangTC-*.otf' | ForEach-Object {",
+            "    Remove-ItemProperty -Path $registryKey -Name $_.Name.Replace($_.Extension, ' (TrueType)') -Force -ErrorAction SilentlyContinue",
+            "    Remove-Item \"$fontInstallDir\\$($_.Name)\" -Force -ErrorAction SilentlyContinue",
+            "}",
+            "if ($cmd -eq \"uninstall\") {",
+            "    Write-Host \"The 'PingFang TC' Font family has been uninstalled and will not be present after restarting your computer.\" -Foreground Magenta",
+            "}"
+        ]
+    },
+    "checkver": {
+        "script": [
+            "$tags = git ls-remote --tags https://github.com/ACT-02/PingFang-for-Windows.git",
+            "$versions = foreach ($line in $tags) { if ($line -match 'refs/tags/([0-9]+\\.[0-9]+d[0-9]+e[0-9]+-static)$') { $matches[1] } }",
+            "$versions | Sort-Object { [version](($_ -replace '-static$', '') -replace 'd', '.' -replace 'e', '.') } -Descending | Select-Object -First 1"
+        ],
+        "regex": "([0-9]+\\.[0-9]+d[0-9]+e[0-9]+-static)"
+    },
+    "autoupdate": {
+        "url": [
+            "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/$version/PingFangTC-Light.otf",
+            "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/$version/PingFangTC-Medium.otf",
+            "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/$version/PingFangTC-Regular.otf",
+            "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/$version/PingFangTC-Semibold.otf",
+            "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/$version/PingFangTC-Thin.otf",
+            "https://raw.githubusercontent.com/ACT-02/PingFang-for-Windows/$version/PingFangTC-Ultralight.otf"
+        ]
+    }
+}
