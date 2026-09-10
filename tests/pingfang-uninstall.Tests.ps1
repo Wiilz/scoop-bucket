@@ -1,5 +1,5 @@
 # Run in a fresh process with Scoop installed: powershell -NoProfile -File .\tests\pingfang-uninstall.Tests.ps1
-# Uses real Scoop hook dispatch, dummy files, an in-memory registry, and a fake native API.
+# Covers PingFang and SFMono-NF with real Scoop hook dispatch, dummy files, an in-memory registry, and a fake native API.
 # No Scoop install/uninstall command is executed and no system fonts are changed.
 $ErrorActionPreference = 'Stop'
 $sandbox = Join-Path ([System.IO.Path]::GetTempPath()) ('pingfang-tests-' + [guid]::NewGuid())
@@ -147,7 +147,7 @@ function Reset-Fixture {
     [LzScoop.PingFangNative]::SessionPath = ''
     [LzScoop.PingFangNative]::References.Clear()
     [LzScoop.PingFangNative]::UnloadCalls.Clear()
-    [LzScoop.PingFangNative]::RegisteredCount = 6
+    [LzScoop.PingFangNative]::RegisteredCount = $names.Count
     [LzScoop.PingFangNative]::Notified = $false
     [LzScoop.PingFangNative]::NotifySucceeds = $true
     Get-ChildItem -LiteralPath $fontDir -File | Microsoft.PowerShell.Management\Remove-Item -Force
@@ -198,7 +198,8 @@ try {
     Assert-True ($correctScope -eq $false) 'Colon switch binding should preserve false'
     Write-Output 'PASS real Scoop dispatch probe: pre_uninstall=False, uninstaller(-Global $false)=True, uninstaller(-Global:$false)=False'
 
-    foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot '..\bucket\pingfang-*.json')) {
+    $manifestFiles = @(Get-ChildItem (Join-Path $PSScriptRoot '..\bucket\pingfang-*.json')) + @(Get-Item (Join-Path $PSScriptRoot '..\bucket\SFMono-NF.json'))
+    foreach ($file in $manifestFiles) {
         $manifest = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
         $app = $file.BaseName
         foreach ($lines in @($manifest.installer.script, $manifest.pre_uninstall, $manifest.checkver.script)) {
@@ -209,12 +210,20 @@ try {
         Assert-True ($null -eq $manifest.uninstaller) 'Cleanup must not run in the affected Invoke-Installer scope'
         $uninstallSource = $manifest.pre_uninstall -join "`n"
         $uninstallHook = { Invoke-ScoopUninstallHooks }
-        $names = @($manifest.url | ForEach-Object { [System.IO.Path]::GetFileName(([uri]$_).AbsolutePath) })
+        $names = if ($app -eq 'SFMono-NF') {
+            @('Bold', 'Heavy', 'Light', 'Medium', 'Regular', 'Semibold') | ForEach-Object { "SFMono $_ Nerd Font Complete.otf"; "SFMono $_ Italic Nerd Font Complete.otf" }
+        } else {
+            @($manifest.url | ForEach-Object { [System.IO.Path]::GetFileName(([uri]$_).AbsolutePath) })
+        }
         # Compile the production P/Invoke declarations under a different namespace, but never call them.
         $declaration = [regex]::Match($uninstallSource, "(?s)Add-Type -TypeDefinition @'\n(.*?)\n'@")
         Assert-True $declaration.Success 'Native declarations not found'
         $testNamespace = 'LzScoopDeclarationTest' + $app.Replace('-', '')
         Add-Type -TypeDefinition $declaration.Groups[1].Value.Replace('namespace LzScoop', "namespace $testNamespace")
+        if ($app -eq 'SFMono-NF') {
+            # Alias only the native API type to the shared fake; keep all hook logic unchanged.
+            $manifest.pre_uninstall = @($manifest.pre_uninstall | ForEach-Object { $_.Replace('SFMonoNative', 'PingFangNative') })
+        }
 
         foreach ($global in @($false, $true)) {
             $fontDir = if ($global) { "$env:windir\Fonts" } else { "$env:LOCALAPPDATA\Microsoft\Windows\Fonts" }
@@ -287,20 +296,22 @@ try {
             $lastRegistryName = [System.IO.Path]::GetFileNameWithoutExtension($names[-1]) + ' (TrueType)'
             $state.Values[$lastRegistryName] = 'another font installation'
             Assert-Throws { & $uninstallHook 6>$null } 'points elsewhere'
-            Assert-True ($state.Values.Count -eq 7) 'Ownership conflict changed registry entries'
+            Assert-True ($state.Values.Count -eq ($names.Count + 1)) 'Ownership conflict changed registry entries'
             Assert-True ([LzScoop.PingFangNative]::UnloadCalls.Count -eq 0) 'Ownership conflict unloaded fonts'
             foreach ($name in $names) { Assert-True (Test-Path -LiteralPath (Join-Path $fontDir $name)) 'Conflicting installation was removed' }
 
-            Reset-Fixture
-            $savedUrls = $manifest.url
-            try {
-                $manifest.url = @()
-                Assert-Throws { & $uninstallHook 6>$null } 'Invalid PingFang font list'
-                $manifest.url = @($savedUrls)
-                $manifest.url[0] = 'https://example.invalid/unrelated.otf'
-                Assert-Throws { & $uninstallHook 6>$null } 'Invalid PingFang font list'
-                Assert-True ($state.Values.Count -eq 7) 'Invalid manifest changed registry entries'
-            } finally { $manifest.url = $savedUrls }
+            if ($app -like 'pingfang-*') {
+                Reset-Fixture
+                $savedUrls = $manifest.url
+                try {
+                    $manifest.url = @()
+                    Assert-Throws { & $uninstallHook 6>$null } 'Invalid PingFang font list'
+                    $manifest.url = @($savedUrls)
+                    $manifest.url[0] = 'https://example.invalid/unrelated.otf'
+                    Assert-Throws { & $uninstallHook 6>$null } 'Invalid PingFang font list'
+                    Assert-True ($state.Values.Count -eq ($names.Count + 1)) 'Invalid manifest changed registry entries'
+                } finally { $manifest.url = $savedUrls }
+            }
 
             Reset-Fixture
             [LzScoop.PingFangNative]::NotifySucceeds = $false
