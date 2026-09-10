@@ -1,9 +1,30 @@
-# Run in a fresh process: powershell -NoProfile -File .\tests\pingfang-uninstall.Tests.ps1
-# Dummy files, an in-memory registry, and a fake native API only. No system fonts are changed.
+# Run in a fresh process with Scoop installed: powershell -NoProfile -File .\tests\pingfang-uninstall.Tests.ps1
+# Uses real Scoop hook dispatch, dummy files, an in-memory registry, and a fake native API.
+# No Scoop install/uninstall command is executed and no system fonts are changed.
 $ErrorActionPreference = 'Stop'
 $sandbox = Join-Path ([System.IO.Path]::GetTempPath()) ('pingfang-tests-' + [guid]::NewGuid())
 $oldLocalAppData = $env:LOCALAPPDATA
 $oldWinDir = $env:windir
+
+# Import only the relevant function definitions, not entire Scoop commands.
+# Directly invoking a manifest script misses Invoke-Installer's switch-binding behavior.
+$scoopRoot = if ($env:SCOOP) { $env:SCOOP } else { "$HOME\scoop" }
+$imported = @()
+foreach ($sourceFile in @("$scoopRoot\apps\scoop\current\lib\install.ps1", "$scoopRoot\apps\scoop\current\lib\manifest.ps1")) {
+    $tokens = $null; $parseErrors = $null
+    $sourceAst = [System.Management.Automation.Language.Parser]::ParseFile($sourceFile, [ref]$tokens, [ref]$parseErrors)
+    if ($parseErrors.Count) { throw "Cannot parse Scoop source: $sourceFile" }
+    $definitions = $sourceAst.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+        $node.Name -in @('Invoke-Installer', 'Invoke-HookScript', 'arch_specific')
+    }, $true)
+    foreach ($definition in $definitions) {
+        . ([scriptblock]::Create($definition.Extent.Text))
+        $imported += $definition.Name
+    }
+}
+if ($imported.Count -ne 3) { throw 'Required Scoop hook functions were not found.' }
 
 if ('LzScoop.PingFangNative' -as [type]) { throw 'Run these tests in a fresh PowerShell process.' }
 Add-Type -TypeDefinition @'
@@ -55,6 +76,21 @@ function Assert-Throws([scriptblock]$action, [string]$pattern) {
     try { & $action } catch { $caught = $_ }
     Assert-True ($null -ne $caught) 'Expected a terminating error'
     Assert-True ($caught.Exception.Message -match $pattern) "Unexpected error: $caught"
+}
+
+function Invoke-ScoopUninstallHooks {
+    param([switch]$CorrectSwitchBinding, [switch]$UpdateRouting)
+    $cmd = if ($UpdateRouting) { 'update' } else { 'uninstall' }
+    Invoke-HookScript -HookType 'pre_uninstall' -Manifest $manifest -Arch '64bit'
+    if ($UpdateRouting) {
+        # scoop-update.ps1 currently omits -Global, so the inner switch defaults to false.
+        Invoke-Installer -Path $dir -Manifest $manifest -ProcessorArchitecture '64bit' -Uninstall
+    } elseif ($CorrectSwitchBinding) {
+        Invoke-Installer -Path $dir -Manifest $manifest -ProcessorArchitecture '64bit' -Global:$global -Uninstall
+    } else {
+        # Reproduce scoop-uninstall.ps1 exactly: -Global $false binds the switch as true.
+        Invoke-Installer -Path $dir -Manifest $manifest -ProcessorArchitecture '64bit' -Global $global -Uninstall
+    }
 }
 
 function Assert-RegistryPath([string]$path) {
@@ -148,17 +184,31 @@ try {
     New-Item -Path $dir -ItemType Directory -Force | Out-Null
     $cmd = 'uninstall'
 
+    # Harmless probe demonstrates why the cleanup must not use uninstaller.script.
+    $scopeProbe = [pscustomobject]@{
+        pre_uninstall = @('Write-Output ([bool]$global)')
+        uninstaller = [pscustomobject]@{ script = @('Write-Output ([bool]$global)') }
+    }
+    $global = $false
+    $preScope = Invoke-HookScript -HookType 'pre_uninstall' -Manifest $scopeProbe -Arch '64bit' 6>$null
+    $brokenScope = Invoke-Installer -Path $dir -Manifest $scopeProbe -ProcessorArchitecture '64bit' -Global $global -Uninstall 6>$null
+    $correctScope = Invoke-Installer -Path $dir -Manifest $scopeProbe -ProcessorArchitecture '64bit' -Global:$global -Uninstall 6>$null
+    Assert-True ($preScope -eq $false) 'pre_uninstall lost the caller scope'
+    Assert-True ($brokenScope -eq $true) 'Expected to reproduce the switch-binding bug'
+    Assert-True ($correctScope -eq $false) 'Colon switch binding should preserve false'
+    Write-Output 'PASS real Scoop dispatch probe: pre_uninstall=False, uninstaller(-Global $false)=True, uninstaller(-Global:$false)=False'
+
     foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot '..\bucket\pingfang-*.json')) {
         $manifest = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
         $app = $file.BaseName
-        foreach ($lines in @($manifest.installer.script, $manifest.pre_uninstall, $manifest.uninstaller.script, $manifest.checkver.script)) {
+        foreach ($lines in @($manifest.installer.script, $manifest.pre_uninstall, $manifest.checkver.script)) {
             $tokens = $null; $parseErrors = $null
             $null = [System.Management.Automation.Language.Parser]::ParseInput(($lines -join "`n"), [ref]$tokens, [ref]$parseErrors)
             Assert-True ($parseErrors.Count -eq 0) "PowerShell syntax errors in $app"
         }
-        $preHook = [scriptblock]::Create($manifest.pre_uninstall -join "`n")
-        $uninstallSource = $manifest.uninstaller.script -join "`n"
-        $uninstallHook = [scriptblock]::Create($uninstallSource)
+        Assert-True ($null -eq $manifest.uninstaller) 'Cleanup must not run in the affected Invoke-Installer scope'
+        $uninstallSource = $manifest.pre_uninstall -join "`n"
+        $uninstallHook = { Invoke-ScoopUninstallHooks }
         $names = @($manifest.url | ForEach-Object { [System.IO.Path]::GetFileName(([uri]$_).AbsolutePath) })
         # Compile the production P/Invoke declarations under a different namespace, but never call them.
         $declaration = [regex]::Match($uninstallSource, "(?s)Add-Type -TypeDefinition @'\n(.*?)\n'@")
@@ -172,11 +222,17 @@ try {
             $firstPath = Join-Path $fontDir $names[0]
 
             Reset-Fixture
-            & $preHook 6>$null
             & $uninstallHook 6>$null
             Assert-Cleaned
-            & $preHook 6>$null
             & $uninstallHook 6>$null
+            Assert-Cleaned
+
+            Reset-Fixture
+            Invoke-ScoopUninstallHooks -CorrectSwitchBinding 6>$null
+            Assert-Cleaned
+
+            Reset-Fixture
+            Invoke-ScoopUninstallHooks -UpdateRouting 6>$null
             Assert-Cleaned
 
             # Regression: a reader can deny exclusive-open while still allowing file deletion.
@@ -184,7 +240,6 @@ try {
             $reader = [System.IO.File]::Open($firstPath, 'Open', 'Read', ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete))
             try {
                 Assert-Throws { $stream = [System.IO.File]::Open($firstPath, 'Open', 'ReadWrite', 'None'); $stream.Dispose() } '.*'
-                & $preHook 6>$null
                 & $uninstallHook 6>$null
             } finally { $reader.Dispose() }
             Assert-Cleaned
@@ -194,7 +249,6 @@ try {
             [LzScoop.PingFangNative]::SessionPath = $firstPath
             [LzScoop.PingFangNative]::SessionLock = [System.IO.File]::Open($firstPath, 'Open', 'ReadWrite', 'None')
             [LzScoop.PingFangNative]::References[$firstPath] = 2
-            & $preHook 6>$null
             & $uninstallHook 6>$null
             Assert-True ([LzScoop.PingFangNative]::References[$firstPath] -eq 0) 'Not all font references were released'
             Assert-Cleaned
@@ -203,7 +257,6 @@ try {
             Reset-Fixture
             $lock = [System.IO.File]::Open($firstPath, 'Open', 'ReadWrite', 'None')
             try {
-                & $preHook 6>$null
                 Assert-Throws { & $uninstallHook 6>$null } 'Font registrations have been removed, but file cleanup is incomplete'
                 Assert-True ($state.Values.Count -eq 1) 'Locked fonts must not remain registered and reload at login'
                 Assert-True (Test-Path -LiteralPath $firstPath) 'Locked font disappeared'
@@ -242,11 +295,9 @@ try {
             $savedUrls = $manifest.url
             try {
                 $manifest.url = @()
-                Assert-Throws { & $preHook 6>$null } 'Invalid PingFang font list'
                 Assert-Throws { & $uninstallHook 6>$null } 'Invalid PingFang font list'
                 $manifest.url = @($savedUrls)
                 $manifest.url[0] = 'https://example.invalid/unrelated.otf'
-                Assert-Throws { & $preHook 6>$null } 'Invalid PingFang font list'
                 Assert-Throws { & $uninstallHook 6>$null } 'Invalid PingFang font list'
                 Assert-True ($state.Values.Count -eq 7) 'Invalid manifest changed registry entries'
             } finally { $manifest.url = $savedUrls }
@@ -264,7 +315,7 @@ try {
             foreach ($name in $names) {
                 Assert-True (-not (Test-Path -LiteralPath (Join-Path $fontDir $name))) 'Missing registry key prevented file cleanup'
             }
-            Write-Output "PASS $app (global=$global): native unload order, shared readers, session resources, external locks, cleanup retry, registry failures, ownership, validation, notification failure, missing registry"
+            Write-Output "PASS $app (global=$global) through real Scoop hooks: affected/fixed uninstall routing, update routing, native unload order, shared readers, session resources, external locks, cleanup retry, registry failures, ownership, validation, notification failure, missing registry"
         }
     }
 } finally {
