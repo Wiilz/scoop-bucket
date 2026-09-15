@@ -3,7 +3,12 @@
     "description": "现代化的 Redis 桌面客户端（Lykin Studio / 鎏光科技工作室出品）",
     "homepage": "https://redisee.com/zh",
     "license": "Proprietary",
-    "notes": "Redisee 是闭源商业软件（freemium）：免费档可用，付费档解锁高级特性。",
+    "notes": [
+        "Redisee 是闭源商业软件（freemium）：免费档可用，付费档解锁高级特性。",
+        "仅安装官方便携包中的主程序，不安装 Velopack 外层启动器和更新器；请使用 scoop update redisee 更新，更新前关闭应用。",
+        "当前布局下数据和日志保存在 %LOCALAPPDATA%\\Redisee，卸载不会删除，也不会由 Scoop persist 自动备份。",
+        "不再自动迁移旧版 persist\\redisee\\Data；如需恢复旧数据，请关闭应用并备份现有数据后手动处理，勿直接覆盖现有数据库。"
+    ],
     "architecture": {
         "64bit": {
             "url": "https://github.com/tiny-craft/redisee-app/releases/download/v1.1.10/Redisee-win-x64-stable-Portable.zip",
@@ -14,22 +19,8 @@
             "hash": "1a1e381f8fc9baf154e85bda3456e174be8e249586904ee39af6094bcb9fca10"
         }
     },
-    "post_install": [
-        "if (Test-Path \"$dir\\current\") {",
-        "    Copy-Item \"$dir\\current\\*\" \"$dir\" -Recurse -Force",
-        "    Remove-Item \"$dir\\current\" -Recurse -Force",
-        "}",
-        "Remove-Item \"$dir\\Update.exe\" -Force -ErrorAction SilentlyContinue",
-        "Remove-Item \"$dir\\packages\" -Recurse -Force -ErrorAction SilentlyContinue",
-        "$dataDst = \"$env:LOCALAPPDATA\\Redisee\\Data\"",
-        "if (Test-Path \"$persist_dir\\Data\\connections.db\") {",
-        "    if (-not (Test-Path \"$dataDst\\connections.db\")) {",
-        "        New-Item -ItemType Directory -Force -Path \"$dataDst\" | Out-Null",
-        "        Copy-Item \"$persist_dir\\Data\\*\" \"$dataDst\" -Force",
-        "        Write-Host \"Migrated existing Redisee data to $dataDst\" -ForegroundColor Green",
-        "    }",
-        "}"
-    ],
+    "extract_dir": "current",
+    "pre_install": "New-Item -Path \"$dir\\.portable\" -ItemType File -Force -ErrorAction Stop | Out-Null",
     "bin": "Redisee.exe",
     "shortcuts": [
         [
@@ -38,8 +29,7 @@
         ]
     ],
     "checkver": {
-        "github": "https://github.com/tiny-craft/redisee-app",
-        "regex": "/releases/tag/v?([\\d.]+)"
+        "github": "https://github.com/tiny-craft/redisee-app"
     },
     "autoupdate": {
         "architecture": {
