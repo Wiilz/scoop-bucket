@@ -1,0 +1,41 @@
+{
+    "version": "1.16.2",
+    "description": "高性能跨平台 VNC 远程桌面软件（本包为 TigerVNC Viewer 客户端）",
+    "homepage": "https://tigervnc.org",
+    "license": "GPL-2.0-only",
+    "notes": [
+        "本包仅包含 TigerVNC Viewer（vncviewer.exe）客户端；Windows 服务端为独立的 tigervnc*-winvnc 安装包，未纳入本包。",
+        "命令行监听模式：vncviewer -listen"
+    ],
+    "architecture": {
+        "64bit": {
+            "url": "https://downloads.sourceforge.net/project/tigervnc/stable/1.16.2/tigervnc64-1.16.2.exe",
+            "hash": "96a0117c8d0d55ea2e2c20e3d9d9a798011da8c5a813a35cd0b9e006d58bb7f4"
+        },
+        "32bit": {
+            "url": "https://downloads.sourceforge.net/project/tigervnc/stable/1.16.2/tigervnc-1.16.2.exe",
+            "hash": "bd1def637465dd51a5a51b1c40a37bd9e5e52123bf9ce5aa135b9e35afb02f10"
+        }
+    },
+    "innosetup": true,
+    "bin": "vncviewer.exe",
+    "shortcuts": [
+        [
+            "vncviewer.exe",
+            "TigerVNC Viewer"
+        ]
+    ],
+    "checkver": {
+        "github": "https://github.com/TigerVNC/tigervnc"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://downloads.sourceforge.net/project/tigervnc/stable/$version/tigervnc64-$version.exe"
+            },
+            "32bit": {
+                "url": "https://downloads.sourceforge.net/project/tigervnc/stable/$version/tigervnc-$version.exe"
+            }
+        }
+    }
+}
