@@ -1,0 +1,39 @@
+{
+    "version": "0.1.0-rc12",
+    "description": "CLI and MCP server for persistent, governed code and database knowledge for AI coding agents",
+    "homepage": "https://github.com/aoci-spec/aoci-code",
+    "license": "FSL-1.1-MIT",
+    "notes": "This package tracks release candidates as well as stable releases.",
+    "suggest": {
+        "Git (required for scanning Git repositories)": "git"
+    },
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/aoci-spec/aoci-code/releases/download/v0.1.0-rc12/aoci_0.1.0-rc12_windows_amd64.zip",
+            "hash": "3b6a80f66ab2411b1cafa8142275622c862bae0a55e6efb9f27bd589faf790da"
+        },
+        "arm64": {
+            "url": "https://github.com/aoci-spec/aoci-code/releases/download/v0.1.0-rc12/aoci_0.1.0-rc12_windows_arm64.zip",
+            "hash": "c529ff3f324c4432bbe037a8c86f8b1955e3f52b46d98b4edc950f0e8f8bead5"
+        }
+    },
+    "bin": "aoci.exe",
+    "checkver": {
+        "url": "https://api.github.com/repos/aoci-spec/aoci-code/releases?per_page=1",
+        "jsonpath": "$[0].tag_name",
+        "regex": "^v([\\d.]+(?:-[\\w.-]+)?)$"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/aoci-spec/aoci-code/releases/download/v$version/aoci_$version_windows_amd64.zip"
+            },
+            "arm64": {
+                "url": "https://github.com/aoci-spec/aoci-code/releases/download/v$version/aoci_$version_windows_arm64.zip"
+            }
+        },
+        "hash": {
+            "url": "$baseurl/SHA256SUMS"
+        }
+    }
+}
