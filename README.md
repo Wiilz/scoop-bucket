@@ -8,7 +8,7 @@
 |------|------|----------|
 | [aoci-code](https://github.com/aoci-spec/aoci-code) | 面向 AI 编码代理的 CLI / MCP 服务，支持 x64/ARM64，包含 RC 更新 | [文档](docs/aoci-code.md) |
 | [redisee](https://redisee.com/zh) | Redis 桌面客户端，支持 x64/ARM64 | [文档](docs/redisee.md) |
-| [wechat-devtools](https://developers.weixin.qq.com/miniprogram/dev/devtools/devtools.html) | 微信开发者工具，支持 x64/ia32 | — |
+| [wechat-devtools](https://developers.weixin.qq.com/miniprogram/dev/devtools/devtools.html) | 微信开发者工具，支持 x64（新版已不再提供 Windows ia32） | — |
 | [sing-box-windows](https://github.com/xinggaoya/sing-box-windows) | Sing-Box GUI 客户端，支持 x64/ARM64 | [文档](docs/sing-box-windows.md) |
 | [tigervnc](https://tigervnc.org) | TigerVNC Viewer 远程桌面客户端，支持 x64/ia32 | — |
 | [SFMono-NF](https://github.com/epk/SF-Mono-Nerd-Font) | SF Mono 字体 + Nerd Fonts 补丁 | [文档](docs/SFMono-NF.md) |
