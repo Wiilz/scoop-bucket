@@ -7,7 +7,8 @@
         "依赖 WebView2 Runtime（Windows 11 通常已内置，缺失时需另行安装）。",
         "直接解压官方安装包，不运行安装器，不自动注册文件关联；保留 MCP 服务和工作流资源。",
         "请使用 scoop update vmark 管理版本，不使用应用内升级；更新或卸载前保存文档并从托盘完整退出，同时关闭仍在使用 VMark MCP 服务的客户端。",
-        "应用数据使用原有的 %APPDATA%\\app.vmark 和 %LOCALAPPDATA%\\app.vmark；本包不搬迁、删除或自动备份这些数据，也不声明 persist。"
+        "安装和更新保留 %APPDATA%\\app.vmark 和 %LOCALAPPDATA%\\app.vmark；执行 scoop uninstall vmark 时会删除当前用户的这两个目录（包括设置、会话恢复和 WebView2 数据），无需 -p，请提前备份。",
+        "不清理用户另存的文档、Windows 凭据或其他客户端的 MCP 配置；不提供自动备份，也不声明 persist。旧安装需刷新 manifest 快照后清理才会生效，详见 docs/vmark.md。"
     ],
     "architecture": {
         "64bit": {
@@ -16,6 +17,25 @@
         }
     },
     "pre_install": "Remove-Item -LiteralPath \"$dir\\`$PLUGINSDIR\", \"$dir\\uninstall.exe\" -Recurse -Force",
+    "post_uninstall": [
+        "if ($cmd -eq 'uninstall') {",
+        "    foreach ($root in @($env:APPDATA, $env:LOCALAPPDATA)) {",
+        "        if ([string]::IsNullOrWhiteSpace($root) -or ![IO.Path]::IsPathRooted($root)) {",
+        "            Write-Warning 'Skipping VMark data cleanup: AppData path is missing or not absolute.'",
+        "            continue",
+        "        }",
+        "        $dataPath = Join-Path $root 'app.vmark'",
+        "        if (Test-Path -LiteralPath $dataPath) {",
+        "            $item = Get-Item -LiteralPath $dataPath -Force -ErrorAction Stop",
+        "            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {",
+        "                Write-Warning \"Skipping linked VMark data directory: $dataPath\"",
+        "                continue",
+        "            }",
+        "            Remove-Item -LiteralPath $dataPath -Recurse -Force -ErrorAction Stop",
+        "        }",
+        "    }",
+        "}"
+    ],
     "bin": "vmark.exe",
     "shortcuts": [
         [

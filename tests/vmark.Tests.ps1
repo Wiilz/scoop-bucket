@@ -29,11 +29,12 @@ Assert-True ($manifest.autoupdate.architecture.'64bit'.url.Replace('$version', $
 $cleanup = 'Remove-Item -LiteralPath "$dir\`$PLUGINSDIR", "$dir\uninstall.exe" -Recurse -Force'
 Assert-True ($manifest.pre_install -ceq $cleanup) 'Cleanup is limited to installer artifacts'
 foreach ($config in @($manifest) + @($manifest.architecture.PSObject.Properties.Value)) {
-    foreach ($field in 'installer', 'post_install', 'pre_uninstall', 'uninstaller', 'post_uninstall', 'persist', 'env_add_path', 'env_set') {
+    foreach ($field in 'installer', 'post_install', 'pre_uninstall', 'uninstaller', 'persist', 'env_add_path', 'env_set') {
         Assert-True ($null -eq $config.$field) "Unexpected lifecycle/data/system mutation: $field"
     }
 }
-Assert-True ($null -eq $manifest.architecture.'64bit'.pre_install) 'No architecture-specific cleanup override'
+Assert-True ($null -eq $manifest.architecture.'64bit'.pre_install -and $null -eq $manifest.architecture.'64bit'.post_uninstall) 'No architecture-specific cleanup override'
+Assert-True ($manifest.post_uninstall[0] -ceq "if (`$cmd -eq 'uninstall') {") 'Data deletion requires an explicit uninstall command'
 Write-Host 'PASS: manifest schema, entry points, update URL and restricted lifecycle hooks'
 
 $sandbox = Join-Path ([IO.Path]::GetTempPath()) ('vmark-tests-' + [guid]::NewGuid())
@@ -46,9 +47,16 @@ try {
         "$env:APPDATA\app.vmark\settings.json" = 'fake-settings'
         "$env:LOCALAPPDATA\app.vmark\EBWebView\dummy" = 'fake-webview-data'
     }
-    foreach ($path in $fixtures.Keys) {
+    $unrelated = @{
+        "$env:APPDATA\other-app\settings.json" = 'keep-other-app'
+        "$env:LOCALAPPDATA\app.vmark-other\dummy" = 'keep-similar-name'
+        "$sandbox\Documents\note.md" = 'keep-document'
+        "$sandbox\mcp-client\config.json" = 'keep-mcp-config'
+    }
+    foreach ($path in @($fixtures.Keys) + @($unrelated.Keys)) {
         New-Item -ItemType Directory -Path (Split-Path $path) -Force | Out-Null
-        [IO.File]::WriteAllText($path, $fixtures[$path])
+        $value = if ($fixtures.ContainsKey($path)) { $fixtures[$path] } else { $unrelated[$path] }
+        [IO.File]::WriteAllText($path, $value)
     }
     $dir = Join-Path $sandbox 'app'
     New-Item -ItemType Directory -Path $dir | Out-Null
@@ -80,13 +88,65 @@ try {
     foreach ($relative in $payload) {
         Assert-True ((Get-FileDigest (Join-Path $dir $relative)) -eq $digests[$relative]) "Payload bytes preserved: $relative"
     }
-    foreach ($hook in 'post_install', 'pre_uninstall', 'uninstaller', 'post_uninstall') {
+    foreach ($cmd in @('install', 'update', 'cleanup', 'reset', '', $null)) {
+        foreach ($hook in 'post_install', 'pre_uninstall', 'uninstaller', 'post_uninstall') {
+            Invoke-HookScript -HookType $hook -Manifest $manifest -ProcessorArchitecture '64bit'
+        }
+        foreach ($path in $fixtures.Keys) {
+            Assert-True ([IO.File]::ReadAllText($path) -ceq $fixtures[$path]) "User data preserved for command '$cmd': $path"
+        }
+    }
+    Write-Host 'PASS: install, update and unknown commands preserve user data'
+
+    $cmd = 'uninstall'
+    $purge = $false
+    foreach ($hook in 'pre_uninstall', 'uninstaller') {
         Invoke-HookScript -HookType $hook -Manifest $manifest -ProcessorArchitecture '64bit'
     }
     foreach ($path in $fixtures.Keys) {
-        Assert-True ([IO.File]::ReadAllText($path) -ceq $fixtures[$path]) "User data preserved: $path"
+        Assert-True ([IO.File]::ReadAllText($path) -ceq $fixtures[$path]) 'Data must survive until post_uninstall'
     }
-    Write-Host 'PASS: installer cleanup preserves GUI, MCP server, resources and user data'
+    Invoke-HookScript -HookType 'post_uninstall' -Manifest $manifest -ProcessorArchitecture '64bit'
+    foreach ($root in @($env:APPDATA, $env:LOCALAPPDATA)) {
+        Assert-True (!(Test-Path -LiteralPath (Join-Path $root 'app.vmark'))) 'Plain uninstall removes the VMark data directory without -p'
+        Assert-True (Test-Path -LiteralPath $root) 'AppData root is preserved'
+    }
+    # Repeated cleanup and purge with absent directories are harmless.
+    $purge = $true
+    Invoke-HookScript -HookType 'post_uninstall' -Manifest $manifest -ProcessorArchitecture '64bit'
+    foreach ($path in $unrelated.Keys) {
+        Assert-True ([IO.File]::ReadAllText($path) -ceq $unrelated[$path]) "Unrelated data preserved: $path"
+    }
+    Write-Host 'PASS: explicit uninstall removes only VMark AppData; missing data is harmless'
+
+    # Never fall back to the working directory if AppData is unset or relative.
+    $env:APPDATA = ''
+    $env:LOCALAPPDATA = 'relative-path'
+    Push-Location $sandbox
+    try {
+        foreach ($relative in @('app.vmark', 'relative-path\app.vmark')) {
+            New-Item -ItemType Directory -Path $relative -Force | Out-Null
+        }
+        Invoke-HookScript -HookType 'post_uninstall' -Manifest $manifest -ProcessorArchitecture '64bit'
+        foreach ($relative in @('app.vmark', 'relative-path\app.vmark')) {
+            Assert-True (Test-Path -LiteralPath $relative) 'Invalid environment paths cannot trigger relative deletion'
+        }
+    } finally { Pop-Location }
+
+    # A user-created junction must not cause deletion at its external target.
+    $env:APPDATA = Join-Path $sandbox 'Roaming'
+    $env:LOCALAPPDATA = Join-Path $sandbox 'Local'
+    $link = Join-Path $env:APPDATA 'app.vmark'
+    $target = Join-Path $sandbox 'linked-data'
+    New-Item -ItemType Directory -Path $target | Out-Null
+    [IO.File]::WriteAllText("$target\sentinel", 'keep-linked-data')
+    New-Item -ItemType Junction -Path $link -Target $target | Out-Null
+    try {
+        Invoke-HookScript -HookType 'post_uninstall' -Manifest $manifest -ProcessorArchitecture '64bit'
+        Assert-True ([IO.File]::ReadAllText("$target\sentinel") -ceq 'keep-linked-data') 'Linked data is not deleted'
+        Assert-True (Test-Path -LiteralPath $link) 'Linked directory is left for manual cleanup'
+    } finally { [IO.Directory]::Delete($link) }
+    Write-Host 'PASS: invalid environment paths and linked data are skipped'
 } finally {
     $env:APPDATA = $oldAppData
     $env:LOCALAPPDATA = $oldLocalAppData
