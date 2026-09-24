@@ -12,6 +12,7 @@
         }
     },
     "pre_install": "Remove-Item -R -Path \"$dir\\`$PLUGINSDIR\"",
+    "bin": "wechatide.cmd",
     "shortcuts": [
         [
             "微信开发者工具.exe",
