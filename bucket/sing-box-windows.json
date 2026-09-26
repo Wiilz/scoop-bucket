@@ -1,5 +1,5 @@
 {
-    "version": "2.3.1",
+    "version": "2.3.2",
     "description": "基于 Tauri 2.0 + Vue 3 的 Sing-Box GUI 客户端，支持多协议、订阅管理、TUN 模式",
     "homepage": "https://github.com/xinggaoya/sing-box-windows",
     "license": "MIT",
@@ -13,12 +13,12 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v2.3.1/sing-box-windows-portable.zip",
-            "hash": "e67d44f95d38a8c41a9f1789c2cc2a8f4c05edd4ba4f02e2acd8a8861b81b5ae"
+            "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v2.3.2/sing-box-windows-portable.zip",
+            "hash": "c5cd09afbd188d90e75741ced68c6c05043f91c0a67b7d4b206974cd5361ab22"
         },
         "arm64": {
-            "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v2.3.1/sing-box-windows-arm64-portable.zip",
-            "hash": "7168fd584cb3dfadef63a1c1c1408973d4a22f11ebf8abe64d2061e26e2aaba4"
+            "url": "https://github.com/xinggaoya/sing-box-windows/releases/download/v2.3.2/sing-box-windows-arm64-portable.zip",
+            "hash": "4fbca76833739e5ca6e3aee603efed5ea887860a97379b4659c7b731067826bc"
         }
     },
     "bin": "sing-box-windows.exe",
