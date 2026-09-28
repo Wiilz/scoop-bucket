@@ -1,5 +1,5 @@
 {
-    "version": "0.9.84",
+    "version": "0.9.86",
     "description": "面向人类与 AI 协作的纯文本工作区，支持 Markdown 所见即所得编辑、多格式预览和 MCP 集成",
     "homepage": "https://github.com/xiaolai/vmark",
     "license": "ISC",
@@ -12,8 +12,8 @@
     ],
     "architecture": {
         "64bit": {
-            "url": "https://github.com/xiaolai/vmark/releases/download/v0.9.84/VMark_0.9.84_x64-setup.exe#/dl.7z",
-            "hash": "3339f2884fe4a9c72a91a0ae8cde718176f4b0b3a8431853350d594986c7c4b9"
+            "url": "https://github.com/xiaolai/vmark/releases/download/v0.9.86/VMark_0.9.86_x64-setup.exe#/dl.7z",
+            "hash": "12c01d43614fc7293309c3cbac9a605ee11947c3a53006b96b54581a7566f3df"
         }
     },
     "pre_install": "Remove-Item -LiteralPath \"$dir\\`$PLUGINSDIR\", \"$dir\\uninstall.exe\" -Recurse -Force",
